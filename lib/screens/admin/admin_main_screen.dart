@@ -7,6 +7,7 @@ import 'product_form_screen.dart';
 import 'categories_screen.dart';
 import 'users_screen.dart';
 import 'bulk_discount_screen.dart';
+import 'widgets/admin_sidebar.dart';
 
 class AdminPanelScreen extends StatefulWidget {
   const AdminPanelScreen({super.key});
@@ -94,174 +95,415 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
         .toList();
   }
 
+  String _formatPrice(double price) {
+    final intPrice = price.toInt();
+    final str = intPrice.toString();
+    final result = StringBuffer();
+    for (int i = 0; i < str.length; i++) {
+      if (i > 0 && (str.length - i) % 3 == 0) result.write('.');
+      result.write(str[i]);
+    }
+    return '\$ ${result.toString()}';
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton.icon(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const UsersScreen()),
-                  );
-                },
-                icon: const Icon(Icons.people_outlined, size: 18),
-                label: const Text('Usuarios'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.black87,
-                  textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                ),
-              ),
-              TextButton.icon(
-                onPressed: () async {
-                  await Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const CategoriesScreen()),
-                  );
-                  if (mounted) {
-                    context.read<CategoryService>().fetchCategories(adminAll: true);
-                  }
-                },
-                icon: const Icon(Icons.category_outlined, size: 18),
-                label: const Text('Categorias'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.black87,
-                  textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                ),
-              ),
-              TextButton.icon(
-                onPressed: () async {
-                  await Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const BulkDiscountScreen()),
-                  );
-                  if (mounted) {
-                    context.read<ProductService>().fetchProducts(limit: 200);
-                  }
-                },
-                icon: const Icon(Icons.discount_outlined, size: 18),
-                label: const Text('Descuentos'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.black87,
-                  textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                ),
-              ),
-              const SizedBox(width: 4),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  await Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ProductFormScreen()),
-                  );
-                  if (mounted) {
-                    context.read<ProductService>().fetchProducts(limit: 200);
-                  }
-                },
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Agregar'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                ),
-              ),
-            ],
-          ),
-        ),
-        _StatsBar(),
-        const SizedBox(height: 8),
-        _CategoryFilterBar(
-          selectedCategory: _selectedCategory,
-          onSelected: (cat) => setState(() => _selectedCategory = cat),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: 'Buscar productos...',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Colors.black),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
-            onChanged: (value) {
-              setState(() => _searchQuery = value);
-              _performSearch();
-            },
-          ),
-        ),
-        const SizedBox(height: 4),
-        Expanded(
-          child: Consumer<ProductService>(
-            builder: (_, service, __) {
-              if (service.isLoading) {
-                return const Center(
-                  child: CircularProgressIndicator(color: Colors.black),
-                );
-              }
-
-              final filtered = _filteredProducts(service.products);
-
-              if (filtered.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+    return Scaffold(
+      body: Row(
+        children: [
+          const AdminSidebar(),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildTopBar(),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Icon(Icons.inventory_2_outlined,
-                          size: 60, color: Colors.grey[300]),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Sin productos en esta categoria',
-                        style:
-                            TextStyle(color: Colors.grey[400], fontSize: 15),
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => const UsersScreen()),
+                          );
+                        },
+                        icon: const Icon(Icons.people_outlined, size: 18),
+                        label: const Text('Usuarios'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.black87,
+                          textStyle: const TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => const CategoriesScreen()),
+                          );
+                          if (mounted) {
+                            context
+                                .read<CategoryService>()
+                                .fetchCategories(adminAll: true);
+                          }
+                        },
+                        icon: const Icon(Icons.category_outlined, size: 18),
+                        label: const Text('Categorias'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.black87,
+                          textStyle: const TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    const BulkDiscountScreen()),
+                          );
+                          if (mounted) {
+                            context
+                                .read<ProductService>()
+                                .fetchProducts(limit: 200);
+                          }
+                        },
+                        icon: const Icon(Icons.discount_outlined, size: 18),
+                        label: const Text('Descuentos'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.black87,
+                          textStyle: const TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => const ProductFormScreen()),
+                          );
+                          if (mounted) {
+                            context
+                                .read<ProductService>()
+                                .fetchProducts(limit: 200);
+                          }
+                        },
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Agregar'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          textStyle: const TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
                       ),
                     ],
                   ),
-                );
-              }
+                ),
+                _StatsBar(),
+                const SizedBox(height: 8),
+                _CategoryFilterBar(
+                  selectedCategory: _selectedCategory,
+                  onSelected: (cat) =>
+                      setState(() => _selectedCategory = cat),
+                ),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Buscar productos...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Colors.black),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                    ),
+                    onChanged: (value) {
+                      setState(() => _searchQuery = value);
+                      _performSearch();
+                    },
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Expanded(
+                  child: Consumer<ProductService>(
+                    builder: (_, service, __) {
+                      if (service.isLoading) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                              color: Color(0xFF00ACC1)),
+                        );
+                      }
 
-              return ListView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                itemCount: filtered.length,
-                itemBuilder: (context, index) {
-                  return _ProductAdminCard(
-                    product: filtered[index],
-                    onEdit: () async {
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => ProductFormScreen(
-                            product: filtered[index],
+                      final filtered = _filteredProducts(service.products);
+
+                      if (filtered.isEmpty) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.inventory_2_outlined,
+                                  size: 60, color: Colors.grey[300]),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Sin productos en esta categoria',
+                                style: TextStyle(
+                                    color: Colors.grey[400], fontSize: 15),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      return SingleChildScrollView(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: DataTable(
+                            columnSpacing: 16,
+                            horizontalMargin: 16,
+                            border: TableBorder(
+                              bottom: BorderSide(color: Colors.grey[200]!),
+                              horizontalInside:
+                                  BorderSide(color: Colors.grey[200]!),
+                            ),
+                            headingRowColor: MaterialStatePropertyAll(
+                              const Color(0xFF00ACC1).withOpacity(0.05),
+                            ),
+                            headingTextStyle: const TextStyle(
+                              color: Color(0xFF00ACC1),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                            dataRowHeight: 70,
+                            columns: const [
+                              DataColumn(label: Text('Código')),
+                              DataColumn(label: Text('Nombre Comercial')),
+                              DataColumn(label: Text('Categoría')),
+                              DataColumn(label: Text('Stock')),
+                              DataColumn(label: Text('Precio')),
+                              DataColumn(label: Text('Descuento')),
+                              DataColumn(label: Text('Acciones')),
+                            ],
+                            rows: List.generate(
+                              filtered.length,
+                              (index) {
+                                final product = filtered[index];
+                                return DataRow(
+                                  color: MaterialStatePropertyAll(
+                                    index % 2 == 0
+                                        ? Colors.white
+                                        : Colors.grey[50],
+                                  ),
+                                  cells: [
+                                    DataCell(Text(
+                                      product.id.toString().substring(0, 6),
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500),
+                                    )),
+                                    DataCell(
+                                      SizedBox(
+                                        width: 200,
+                                        child: Text(
+                                          product.name,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(Text(
+                                      product.category,
+                                      style: const TextStyle(fontSize: 12),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    )),
+                                    DataCell(
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: product.stock > 0
+                                              ? const Color(0xFFE8F5E9)
+                                              : const Color(0xFFFFEBEE),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          '${product.stock}',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: product.stock > 0
+                                                ? const Color(0xFF2E7D32)
+                                                : const Color(0xFFD32F2F),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(Text(
+                                      _formatPrice(product.price),
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF00ACC1),
+                                      ),
+                                    )),
+                                    DataCell(
+                                      product.discountPercent != null
+                                          ? Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color:
+                                                    const Color(0xFFE91E63),
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                '-${product.discountPercent!.toInt()}%',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            )
+                                          : const Text('-'),
+                                    ),
+                                    DataCell(
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(
+                                                Icons.edit_outlined,
+                                                size: 18,
+                                                color: Colors.black54),
+                                            onPressed: () async {
+                                              await Navigator.of(context)
+                                                  .push(
+                                                MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      ProductFormScreen(
+                                                    product: product,
+                                                  ),
+                                                ),
+                                              );
+                                              if (mounted) {
+                                                context
+                                                    .read<ProductService>()
+                                                    .fetchProducts(
+                                                        limit: 200);
+                                              }
+                                            },
+                                            tooltip: 'Editar',
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(
+                                                Icons.delete_outline,
+                                                size: 18,
+                                                color: Color(0xFFD32F2F)),
+                                            onPressed: () =>
+                                                _deleteProduct(product),
+                                            tooltip: 'Eliminar',
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
                           ),
                         ),
                       );
-                      if (mounted) {
-                        context
-                            .read<ProductService>()
-                            .fetchProducts(limit: 200);
-                      }
                     },
-                    onDelete: () => _deleteProduct(filtered[index]),
-                  );
-                },
-              );
-            },
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopBar() {
+    return Container(
+      color: const Color(0xFF00ACC1),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Row(
+        children: [
+          const Icon(Icons.home, color: Colors.white, size: 24),
+          const SizedBox(width: 12),
+          const Text(
+            'isfarma',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(width: 24),
+          const Icon(Icons.shopping_cart, color: Colors.white, size: 24),
+          const SizedBox(width: 8),
+          const Text(
+            'Productos',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const Spacer(),
+          Row(
+            children: [
+              Text(
+                'EN LÍNEA',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(width: 12),
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: Colors.white.withOpacity(0.2),
+                child: const Icon(Icons.person, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Admin',
+                style: TextStyle(color: Colors.white, fontSize: 13),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -410,192 +652,6 @@ class _CategoryFilterBar extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _ProductAdminCard extends StatelessWidget {
-  final Product product;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-
-  const _ProductAdminCard({
-    required this.product,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  String _formatPrice(double price) {
-    final intPrice = price.toInt();
-    final str = intPrice.toString();
-    final result = StringBuffer();
-    for (int i = 0; i < str.length; i++) {
-      if (i > 0 && (str.length - i) % 3 == 0) result.write('.');
-      result.write(str[i]);
-    }
-    return '\$ ${result.toString()}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.horizontal(
-              left: Radius.circular(14),
-            ),
-            child: Container(
-              width: 90,
-              height: 90,
-              color: const Color(0xFFF5F5F5),
-              child: product.images.isNotEmpty
-                  ? Image.network(
-                      product.images.first,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (_, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Center(
-                          child: Image.asset(
-                            'assets/images/Geometric_shape_loader copy.gif',
-                            width: 40,
-                            height: 40,
-                          ),
-                        );
-                      },
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.inventory_2_outlined,
-                        color: Color(0xFFBDBDBD),
-                        size: 36,
-                      ),
-                    )
-                  : const Icon(
-                      Icons.inventory_2_outlined,
-                      color: Color(0xFFBDBDBD),
-                      size: 36,
-                    ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                      color: Colors.black,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0F0F0),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          product.category,
-                          style: const TextStyle(
-                              fontSize: 11, color: Colors.black54),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: product.stock > 0
-                              ? const Color(0xFFE8F5E9)
-                              : const Color(0xFFFFEBEE),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          'Stock: ${product.stock}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: product.stock > 0
-                                ? const Color(0xFF2E7D32)
-                                : const Color(0xFFD32F2F),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Text(
-                        _formatPrice(product.price),
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black,
-                        ),
-                      ),
-                      if (product.discountPercent != null) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE91E63),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            '-${product.discountPercent!.toInt()}%',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Column(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.edit_outlined,
-                    size: 20, color: Colors.black54),
-                onPressed: onEdit,
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline,
-                    size: 20, color: Color(0xFFD32F2F)),
-                onPressed: onDelete,
-              ),
-            ],
-          ),
-          const SizedBox(width: 4),
-        ],
-      ),
     );
   }
 }
